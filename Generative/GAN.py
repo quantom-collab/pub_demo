@@ -63,14 +63,16 @@ class GAN():
         self.output_dir = output_directory
         self.d_loss_function = tf.keras.losses.MeanSquaredError()
         self.g_loss_function = tf.keras.losses.MeanSquaredError()
+        self.norm1_loss_function = tf.keras.losses.MeanSquaredError()
+        self.norm2_loss_function = tf.keras.losses.MeanSquaredError()
 
         
         self.discriminator = self.build_discriminator()
         self.generator = self.build_generator()
         if model_load_Path != None:
             print("Loading Models...")
-            self.discriminator.load_weights(os.path.join(model_load_Path, "2022.08.21_discriminator_6Params.h5"))
-            self.generator.load_weights(os.path.join(model_load_Path, "2022.08.21_generator_6Params.h5"))
+#             self.discriminator.load_weights(os.path.join(model_load_Path, "2022.08.21_discriminator_6Params.h5"))
+#             self.generator.load_weights(os.path.join(model_load_Path, "2022.08.21_generator_6Params.h5"))
             print("Trained weights loaded...")
                 
         self.discriminator.compile(loss='mse',
@@ -144,8 +146,7 @@ class GAN():
         N = 200
         fake = tf.zeros((self.batch_size, 1)) 
         valid = tf.ones((self.batch_size, 1))
-#         fake_master = tf.zeros((self.batch_size*N, 1)) 
-#         valid_master = tf.ones((self.batch_size*N, 1)) 
+ 
         
         for epoch in range(self.start_epoch, epochs):
             
@@ -166,7 +167,7 @@ class GAN():
                 g_loss_fake = self.g_loss_function(valid, fake_pred)
                 
                 d_loss = 0.5 * tf.add(d_loss_real, d_loss_fake)
-                g_loss = 0.5*tf.add(g_loss_real, g_loss_fake) + tf.losses.mse(self.train_norms1, norm1) + tf.losses.mse(self.train_norms2, norm2)
+                g_loss = 0.5*tf.add(g_loss_real, g_loss_fake) + self.norm1_loss_function(self.train_norms1, norm1) + self.norm2_loss_function(self.train_norms2, norm2)
                 
             d_grads = tape.gradient(d_loss, self.discriminator.trainable_variables)
             self.d_optimizer.apply_gradients(zip(d_grads, self.discriminator.trainable_variables))
@@ -206,7 +207,7 @@ class GAN():
                 plt.show()
                 
                 results = gen_params.numpy()
-                print(results.shape)
+
                 plt.clf()
                 plt.figure(figsize=(20,15))
                 for i in range(results.shape[1]):
